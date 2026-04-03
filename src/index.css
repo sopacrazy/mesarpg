@@ -22,3 +22,33 @@
     background: rgba(181, 131, 90, 0.4);
   }
 }
+
+/* Narrative Styles */
+.prose-container h1 { font-size: 2.25rem; font-weight: 800; margin-bottom: 1rem; color: white !important; }
+.prose-container h2 { font-size: 1.875rem; font-weight: 700; margin-top: 1.5rem; margin-bottom: 0.75rem; color: white !important; }
+.prose-container h3 { font-size: 1.5rem; font-weight: 600; margin-top: 1.25rem; margin-bottom: 0.5rem; color: white !important; }
+.prose-container p { margin-bottom: 1.25rem; line-height: 1.8; color: #e2e8f0; }
+.prose-container strong { color: #d4af37 !important; }
+.prose-container blockquote { 
+  border-left: 4px solid #d4af37; 
+  padding: 0.5rem 1.5rem; 
+  background: rgba(212, 175, 55, 0.05); 
+  font-style: italic; 
+  margin: 1.5rem 0;
+  border-radius: 0 12px 12px 0;
+}
+.prose-container img { 
+  border-radius: 1.5rem; 
+  margin: 2rem 0; 
+  box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+  border: 1px solid rgba(212, 175, 55, 0.2);
+}
+.prose-container ul { list-style-type: disc; padding-left: 1.5rem; margin-bottom: 1.25rem; }
+.prose-container ol { list-style-type: decimal; padding-left: 1.5rem; margin-bottom: 1.25rem; }
+.prose-container li { margin-bottom: 0.5rem; }
+.prose-container hr { border: 0; border-top: 1px solid rgba(212, 175, 55, 0.1); margin: 2rem 0; }
+
+.narrative-post {
+  background-image: radial-gradient(circle at 2px 2px, rgba(212, 175, 55, 0.03) 1px, transparent 0);
+  background-size: 24px 24px;
+}

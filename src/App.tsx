@@ -1,4 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
+import ReactQuill from 'react-quill-new';
+import 'react-quill-new/dist/quill.snow.css';
 import { 
   Globe, Bell, Compass, Grid, List, Users, Crown, ArrowRight, 
   Sparkles, ChevronDown, Star, Menu, Image as ImageIcon, Send,
@@ -110,6 +112,8 @@ export default function App() {
   const [activeChannelId, setActiveChannelId] = useState<number | 'home'>('home');
   const [members, setMembers] = useState(initialMembers);
   const [isGMModalOpen, setIsGMModalOpen] = useState(false);
+  const [isNarrativeModalOpen, setIsNarrativeModalOpen] = useState(false);
+  const [narrativeContent, setNarrativeContent] = useState('');
   const [newChannelData, setNewChannelData] = useState({
     name: '', category: 'NARRATIVA', type: 'narrative', visibility: 'public', anyoneCanTalk: true
   });
@@ -134,15 +138,33 @@ export default function App() {
 
     const newMessage = {
       id: Date.now(),
-      type: activeChannel.type as any, // Usa o tipo da sala atual
+      type: 'speech' as any, // Mensagem comum curta
       content: inputText,
+      user: "Dungeon Master",
+      role: "Mestre",
+      avatar: "https://picsum.photos/seed/dm/100/100",
+      channelId: activeChannelId
+    };
+
+    setMessages([...messages, newMessage]);
+    setInputText('');
+  };
+
+  const handleSendNarrative = () => {
+    if (!narrativeContent.trim()) return;
+
+    const newMessage = {
+      id: Date.now(),
+      type: 'narrative' as any, // Post narrativo formatado
+      content: narrativeContent,
       user: "Dungeon Master",
       role: "Mestre",
       channelId: activeChannelId
     };
 
     setMessages([...messages, newMessage]);
-    setInputText('');
+    setNarrativeContent('');
+    setIsNarrativeModalOpen(false);
   };
 
   const deleteMessage = (id: number) => {
@@ -294,16 +316,25 @@ export default function App() {
                 {messages.filter(m => !m.channelId || m.channelId === activeChannelId).map(msg => (
                   <React.Fragment key={msg.id}>
                     {msg.type === 'narrative' && (
-                      <div className="my-2 group animate-in fade-in slide-in-from-left-2 duration-500 relative">
-                        <div className="flex items-center gap-2 mb-1 opacity-60 group-hover:opacity-100 transition-opacity">
-                          <span className="text-[10px] font-black text-[#d4af37] uppercase tracking-[0.2em] font-serif">{msg.role}</span>
-                          <span className="text-xs font-bold text-white/50">{msg.user}</span>
-                          <button onClick={() => deleteMessage(msg.id)} className="opacity-0 group-hover:opacity-100 p-1 text-red-500/50 hover:text-red-500 transition-all"><PlusCircle size={12} className="rotate-45"/></button>
+                      <div className="my-6 group animate-in fade-in slide-in-from-left-4 duration-1000 relative">
+                        <div className="flex items-center gap-3 mb-3 opacity-40 group-hover:opacity-100 transition-opacity">
+                          <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent to-[#d4af37]/30"></div>
+                          <span className="text-[10px] font-black text-[#d4af37] uppercase tracking-[0.3em] font-serif flex items-center gap-2"><Scroll size={12}/> Cena de Campanha</span>
+                          <span className="text-xs font-bold text-white/30 uppercase tracking-widest">{msg.user}</span>
+                          <button onClick={() => deleteMessage(msg.id)} className="p-1 text-red-500/50 hover:text-red-500 transition-all"><PlusCircle size={14} className="rotate-45"/></button>
+                          <div className="h-[1px] flex-1 bg-gradient-to-l from-transparent to-[#d4af37]/30"></div>
                         </div>
-                        <div className="border-l-2 border-[#d4af37] pl-4 py-1 bg-gradient-to-r from-[#d4af37]/5 to-transparent">
-                          <p className="font-serif italic text-lg text-[#e0e0e0] leading-relaxed drop-shadow-sm">
-                            {msg.content}
-                          </p>
+
+                        <div className="p-8 md:p-12 bg-[#12141a]/60 backdrop-blur-md rounded-3xl border border-[#d4af37]/10 shadow-[0_20px_50px_rgba(0,0,0,0.5)] relative overflow-hidden narrative-post group-hover:border-[#d4af37]/20 transition-all">
+                          {/* Decorative elements */}
+                          <div className="absolute top-0 right-0 w-32 h-32 bg-[#d4af37]/5 rounded-full blur-[60px] pointer-events-none"></div>
+                          <div className="absolute bottom-0 left-0 w-24 h-24 bg-[#d4af37]/5 rounded-full blur-[50px] pointer-events-none"></div>
+                          
+                          <div className="relative z-10 prose prose-invert prose-p:text-gray-100 prose-p:leading-relaxed prose-headings:text-white prose-headings:font-serif prose-strong:text-[#d4af37] prose-img:rounded-2xl prose-blockquote:border-[#d4af37] prose-blockquote:bg-white/5 prose-blockquote:py-1 prose-blockquote:px-6 prose-a:text-[#d4af37] prose-container font-serif text-[1.1rem] text-gray-200">
+                             <div 
+                              dangerouslySetInnerHTML={{ __html: msg.content }} 
+                            />
+                          </div>
                         </div>
                       </div>
                     )}
@@ -340,26 +371,37 @@ export default function App() {
 
           {/* Floating Input - Only if not on home */}
           {activeChannelId !== 'home' && (
-            <form className="p-4 md:p-6 pt-0 shrink-0" onSubmit={handleSendMessage}>
-              <div className="bg-[#1a1d24]/90 backdrop-blur-xl border border-white/10 rounded-2xl p-2 flex items-center gap-2 shadow-2xl">
-                <button type="button" className="p-2 text-gray-400 hover:text-[#d4af37] hover:bg-[#d4af37]/10 rounded-xl transition-all">
-                  <Dices size={22} />
-                </button>
-                <button type="button" className="p-2 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all hidden sm:block">
-                  <ImageIcon size={22} />
-                </button>
-                <input 
-                  type="text" 
-                  value={inputText}
-                  onChange={(e) => setInputText(e.target.value)}
-                  placeholder={activeChannel.type === 'narrative' ? "Escreva sua narração..." : "Envie uma informação..."} 
-                  className="flex-1 bg-transparent border-none text-white placeholder-gray-500 focus:outline-none px-2 text-[15px]"
-                />
-                <button type="submit" className="p-2.5 bg-[#d4af37] text-[#0b0c10] rounded-xl hover:bg-[#e5c158] hover:shadow-[0_0_15px_rgba(212,175,55,0.4)] transition-all">
-                  <Send size={18} className="ml-0.5" />
+            <div className="p-4 md:p-6 pt-0 shrink-0 flex flex-col gap-3">
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={() => setIsNarrativeModalOpen(true)}
+                  className="px-4 py-1.5 bg-[#d4af37]/10 text-[#d4af37] border border-[#d4af37]/30 rounded-full text-xs font-bold uppercase tracking-widest flex items-center gap-2 hover:bg-[#d4af37] hover:text-[#0b0c10] transition-all shadow-lg"
+                >
+                  <Scroll size={14} /> Modo Narração
                 </button>
               </div>
-            </form>
+
+              <form className="flex items-center gap-2 w-full" onSubmit={handleSendMessage}>
+                <div className="flex-1 bg-[#1a1d24]/90 backdrop-blur-xl border border-white/10 rounded-2xl p-2 flex items-center gap-2 shadow-2xl">
+                  <button type="button" className="p-2 text-gray-400 hover:text-[#d4af37] hover:bg-[#d4af37]/10 rounded-xl transition-all">
+                    <Dices size={22} />
+                  </button>
+                  <button type="button" className="p-2 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all hidden sm:block">
+                    <ImageIcon size={22} />
+                  </button>
+                  <input 
+                    type="text" 
+                    value={inputText}
+                    onChange={(e) => setInputText(e.target.value)}
+                    placeholder="Fale com os outros..." 
+                    className="flex-1 bg-transparent border-none text-white placeholder-gray-600 focus:outline-none px-2 text-[15px]"
+                  />
+                  <button type="submit" className="p-2.5 bg-[#d4af37] text-[#0b0c10] rounded-xl hover:bg-[#e5c158] hover:shadow-[0_0_15px_rgba(212,175,55,0.4)] transition-all">
+                    <Send size={18} className="ml-0.5" />
+                  </button>
+                </div>
+              </form>
+            </div>
           )}
         </div>
 
@@ -473,6 +515,99 @@ export default function App() {
                 <button type="submit" className="flex-1 py-3 px-4 rounded-xl bg-[#d4af37] text-[#0b0c10] font-bold hover:bg-[#e5c158] transition-all uppercase tracking-widest text-xs shadow-lg shadow-[#d4af37]/20">Criar Canal</button>
               </div>
             </form>
+          </div>
+        )}
+
+        {/* GM ADVANCED NARRATIVE MODAL */}
+        {isNarrativeModalOpen && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/90 backdrop-blur-md" onClick={() => setIsNarrativeModalOpen(false)}></div>
+            <div className="relative w-full max-w-5xl bg-[#12141a] border border-[#d4af37]/50 rounded-[40px] shadow-[0_0_100px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col max-h-[90vh] animate-in slide-in-from-bottom-10 duration-500">
+              {/* Decorative corner */}
+              <div className="absolute top-0 right-0 w-64 h-64 bg-[#d4af37]/5 rounded-bl-[200px] blur-[80px] pointer-events-none"></div>
+
+              <div className="p-8 border-b border-white/5 flex items-center justify-between bg-[#1a1d24]/50">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-[#d4af37]/10 text-[#d4af37] rounded-2xl">
+                    <Scroll size={28} />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-serif font-black text-white tracking-wide uppercase">Editor de Cena</h2>
+                    <p className="text-xs text-[#d4af37]/70 font-bold tracking-widest uppercase">Modo Narração Avançado</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setIsNarrativeModalOpen(false)}
+                  className="p-3 hover:bg-white/5 rounded-2xl text-gray-500 hover:text-white transition-all"
+                >
+                  <Menu className="rotate-45" size={32} />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-8 bg-[#0b0c10]/40">
+                <style>{`
+                  .ql-toolbar.ql-snow {
+                    border: 1px solid rgba(255,255,255,0.05) !important;
+                    background: rgba(26,29,36,0.8) !important;
+                    border-radius: 16px 16px 0 0 !important;
+                    padding: 12px !important;
+                  }
+                  .ql-container.ql-snow {
+                    border: 1px solid rgba(255,255,255,0.05) !important;
+                    background: rgba(18,20,26,0.5) !important;
+                    border-radius: 0 0 16px 16px !important;
+                    min-height: 400px !important;
+                    font-family: 'Georgia', serif !important;
+                    font-size: 1.1rem !important;
+                  }
+                  .ql-editor {
+                    padding: 20px 30px !important;
+                  }
+                  .ql-snow .ql-stroke { stroke: #a0aec0 !important; }
+                  .ql-snow .ql-fill { fill: #a0aec0 !important; }
+                  .ql-snow .ql-picker { color: #a0aec0 !important; }
+                  .ql-snow .ql-picker-options { background-color: #1a1d24 !important; border: 1px solid #d4af3733 !important; }
+                  .ql-editor.ql-blank::before { color: rgba(255,255,255,0.2) !important; font-style: italic !important; }
+                `}</style>
+                <ReactQuill 
+                  theme="snow"
+                  value={narrativeContent}
+                  onChange={setNarrativeContent}
+                  modules={{
+                    toolbar: [
+                      [{ 'header': [1, 2, 3, false] }],
+                      ['bold', 'italic', 'underline', 'strike', 'blockquote'],
+                      [{'list': 'ordered'}, {'list': 'bullet'}, {'indent': '-1'}, {'indent': '+1'}],
+                      [{ 'align': [] }],
+                      [{ 'color': [] }, { 'background': [] }],
+                      ['link', 'image'],
+                      ['clean']
+                    ],
+                  }}
+                  placeholder="Havia uma vez, num reino distante..."
+                />
+              </div>
+
+              <div className="p-8 bg-[#1a1d24]/80 flex items-center justify-between">
+                <div className="text-xs text-gray-500 italic max-w-sm">
+                  Dica: Use títulos e imagens para tornar a cena mais imersiva para seus jogadores.
+                </div>
+                <div className="flex gap-4">
+                  <button 
+                    onClick={() => setIsNarrativeModalOpen(false)}
+                    className="px-6 py-3 rounded-2xl border border-white/5 text-gray-400 font-bold hover:bg-white/5 transition-all"
+                  >
+                    Descartar
+                  </button>
+                  <button 
+                    onClick={handleSendNarrative}
+                    className="px-10 py-4 bg-[#d4af37] text-[#0b0c10] rounded-2xl font-black tracking-[0.2em] uppercase hover:bg-[#e5c158] hover:shadow-[0_0_40px_rgba(212,175,55,0.4)] transition-all flex items-center gap-3 drop-shadow-xl"
+                  >
+                    Lançar Narração <Send size={18} />
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </div>
