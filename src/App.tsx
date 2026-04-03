@@ -1,11 +1,25 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   Globe, Bell, Compass, Grid, List, Users, Crown, ArrowRight, 
   Sparkles, ChevronDown, Star, Menu, Image as ImageIcon, Send,
   Home, Search, PlusCircle, User, Hash, Book, Scroll, Dices, MoreVertical
 } from 'lucide-react';
 
+const initialChannels = [
+  { id: 1, name: 'historia', category: 'NARRATIVA', type: 'narrative', visibility: 'public', anyoneCanTalk: true, description: 'Crônicas principais da aventura e desenvolvimento da trama.', image: 'https://images.unsplash.com/photo-1519074063912-ad2fe3f51964?q=80&w=800&auto=format&fit=crop' },
+  { id: 2, name: 'combate', category: 'NARRATIVA', type: 'narrative', visibility: 'public', anyoneCanTalk: true, description: 'Arena de batalha, iniciativa e rolagem de dados críticos.', image: 'https://images.unsplash.com/photo-1544027993-37dbfe43562a?q=80&w=800&auto=format&fit=crop' },
+  { id: 3, name: 'regras', category: 'INFORMAÇÃO', type: 'info', visibility: 'public', anyoneCanTalk: false, description: 'Manual de bolso, sistemas de jogo e guias rápidos.', image: 'https://images.unsplash.com/photo-1589254065878-42c9da997008?q=80&w=800&auto=format&fit=crop' },
+  { id: 4, name: 'fichas', category: 'INFORMAÇÃO', type: 'info', visibility: 'public', anyoneCanTalk: true, description: 'Repositório de heróis, NPCs e equipamentos lendários.', image: 'https://images.unsplash.com/photo-1514483127413-f72f273478c3?q=80&w=800&auto=format&fit=crop' },
+];
+
+const initialMembers = [
+  { id: 'dm', name: "Dungeon Master", avatar: "https://picsum.photos/seed/dm/100/100", role: "Mestre", status: 'online' },
+  { id: 'elara', name: "Elara", avatar: "https://picsum.photos/seed/elara/100/100", role: "Jogador", status: 'online' },
+  { id: 'kaelen', name: "Kaelen", avatar: "https://picsum.photos/seed/kaelen/100/100", role: "Jogador", status: 'online' },
+];
+
 const adventures = [
+  // ... rest same as before ...
   {
     id: 1,
     title: "A Taverna do Dragão Quebrado",
@@ -48,12 +62,15 @@ const initialRoomMessages = [
   {
     id: 1,
     type: 'narrative',
+    user: "Dungeon Master",
+    role: "Mestre",
     content: "A névoa espessa rasteja por entre os troncos retorcidos da Floresta Sussurrante. O som de galhos quebrando ecoa à distância, seguido por um silêncio antinatural. Vocês sentem o frio penetrar em suas armaduras.",
   },
   {
     id: 2,
     type: 'speech',
     user: "Kaelen",
+    role: "Jogador",
     avatar: "https://picsum.photos/seed/kaelen/100/100",
     content: "Fiquem atentos. Não estamos sozinhos aqui. Alguém prepare uma tocha.",
   },
@@ -66,12 +83,15 @@ const initialRoomMessages = [
   {
     id: 4,
     type: 'narrative',
+    user: "Dungeon Master",
+    role: "Mestre",
     content: "Com sua visão aguçada, Elara percebe o brilho de olhos amarelos na escuridão, a cerca de dez metros à frente. Uma criatura lupina de proporções monstruosas rosna baixinho.",
   },
   {
     id: 5,
     type: 'speech',
     user: "Elara",
+    role: "Jogador",
     avatar: "https://picsum.photos/seed/elara/100/100",
     content: "Ali! Cuidado, é um Lobo Atroz!",
   }
@@ -86,20 +106,62 @@ export default function App() {
   const [currentView, setCurrentView] = useState<'dashboard' | 'room'>('dashboard');
   const [messages, setMessages] = useState(initialRoomMessages);
   const [inputText, setInputText] = useState('');
+  const [channels, setChannels] = useState(initialChannels);
+  const [activeChannelId, setActiveChannelId] = useState<number | 'home'>('home');
+  const [members, setMembers] = useState(initialMembers);
+  const [isGMModalOpen, setIsGMModalOpen] = useState(false);
+  const [newChannelData, setNewChannelData] = useState({
+    name: '', category: 'NARRATIVA', type: 'narrative', visibility: 'public', anyoneCanTalk: true
+  });
+  
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const activeChannel = channels.find(c => c.id === activeChannelId) || channels[0];
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    if (currentView === 'room') {
+      scrollToBottom();
+    }
+  }, [messages, currentView, activeChannelId]);
 
   const handleSendMessage = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!inputText.trim()) return;
 
     const newMessage = {
-      id: messages.length + 1,
-      type: 'narrative' as const, // Toda fala do mestre sai como narrativa (bordão dourado)
+      id: Date.now(),
+      type: activeChannel.type as any, // Usa o tipo da sala atual
       content: inputText,
-      user: "Dungeon Master"
+      user: "Dungeon Master",
+      role: "Mestre",
+      channelId: activeChannelId
     };
 
     setMessages([...messages, newMessage]);
     setInputText('');
+  };
+
+  const deleteMessage = (id: number) => {
+    setMessages(messages.filter(m => m.id !== id));
+  };
+
+  const handleCreateChannel = (e: React.FormEvent) => {
+    e.preventDefault();
+    const newChannel = {
+      ...newChannelData,
+      id: Date.now(),
+    };
+    setChannels([...channels, newChannel]);
+    setIsGMModalOpen(false);
+    setNewChannelData({ name: '', category: 'NARRATIVA', type: 'narrative', visibility: 'public', anyoneCanTalk: true });
+  };
+
+  const banUser = (id: string) => {
+    setMembers(members.filter(m => m.id !== id));
   };
 
   if (currentView === 'room') {
@@ -122,20 +184,44 @@ export default function App() {
             <h1 className="font-serif font-bold text-white truncate">Criador de Mundos</h1>
           </div>
           <div className="p-4 flex-1 overflow-y-auto custom-scrollbar space-y-6">
-            <div>
-              <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-1"><ChevronDown size={14}/> NARRATIVA</h3>
-              <div className="space-y-1">
-                <div className="flex items-center gap-2 px-2 py-1.5 bg-[#d4af37]/10 text-[#d4af37] rounded-md cursor-pointer"><Hash size={16}/> <span className="font-medium">historia</span></div>
-                <div className="flex items-center gap-2 px-2 py-1.5 text-gray-400 hover:text-gray-200 hover:bg-white/5 rounded-md cursor-pointer"><Hash size={16}/> <span className="font-medium">combate</span></div>
-              </div>
+            <div 
+              onClick={() => setActiveChannelId('home')}
+              className={`flex items-center gap-3 px-2 py-2 rounded-md cursor-pointer transition-all mb-4 ${activeChannelId === 'home' ? 'bg-[#d4af37]/20 text-[#d4af37]' : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'}`}
+            >
+              <Grid size={18} />
+              <span className="font-bold tracking-wider text-xs uppercase">Início</span>
             </div>
-            <div>
-              <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-1"><ChevronDown size={14}/> INFORMAÇÃO</h3>
-              <div className="space-y-1">
-                <div className="flex items-center gap-2 px-2 py-1.5 text-gray-400 hover:text-gray-200 hover:bg-white/5 rounded-md cursor-pointer"><Book size={16}/> <span className="font-medium">regras</span></div>
-                <div className="flex items-center gap-2 px-2 py-1.5 text-gray-400 hover:text-gray-200 hover:bg-white/5 rounded-md cursor-pointer"><Scroll size={16}/> <span className="font-medium">fichas</span></div>
+            {['NARRATIVA', 'INFORMAÇÃO'].map(cat => (
+              <div key={cat}>
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1"><ChevronDown size={14}/> {cat}</h3>
+                  <button 
+                    onClick={() => {
+                      setNewChannelData({...newChannelData, category: cat});
+                      setIsGMModalOpen(true);
+                    }}
+                    className="p-1 hover:text-[#d4af37] text-gray-600 transition-colors"
+                  >
+                    <PlusCircle size={14}/>
+                  </button>
+                </div>
+                <div className="space-y-1">
+                  {channels.filter(c => c.category === cat).map(channel => (
+                    <div 
+                      key={channel.id}
+                      onClick={() => setActiveChannelId(channel.id)}
+                      className={`flex items-center justify-between group px-2 py-1.5 rounded-md cursor-pointer transition-all ${activeChannelId === channel.id ? 'bg-[#d4af37]/10 text-[#d4af37]' : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'}`}
+                    >
+                      <div className="flex items-center gap-2">
+                        {channel.type === 'narrative' ? <Hash size={16}/> : <Book size={16}/>}
+                        <span className="font-medium">{channel.name}</span>
+                      </div>
+                      <MoreVertical size={14} className="opacity-0 group-hover:opacity-100 text-gray-600" />
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
+            ))}
           </div>
         </div>
 
@@ -148,7 +234,9 @@ export default function App() {
                 <Menu size={24} />
               </button>
               <Hash className="text-gray-500 hidden sm:block" size={20} />
-              <h2 className="font-serif font-bold text-lg text-white truncate">A Taverna do Dragão Quebrado</h2>
+              <h2 className="font-serif font-bold text-lg text-white truncate">
+                {activeChannelId === 'home' ? 'Visão Geral' : activeChannel.name} — A Taverna do Dragão Quebrado
+              </h2>
             </div>
             <div className="flex items-center gap-4">
               <button className="text-gray-400 hover:text-white transition-colors"><Search size={20} /></button>
@@ -156,92 +244,150 @@ export default function App() {
             </div>
           </header>
 
-          {/* Chat Stream */}
-          <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 custom-scrollbar flex flex-col">
-            <div className="mt-auto"></div> {/* Push content to bottom */}
-            {messages.map(msg => (
-              <React.Fragment key={msg.id}>
-                {msg.type === 'narrative' && (
-                  <div className="border-l-2 border-[#d4af37] pl-4 py-1 my-2 bg-gradient-to-r from-[#d4af37]/5 to-transparent">
-                    <p className="font-serif italic text-lg text-[#e0e0e0] leading-relaxed drop-shadow-sm">
-                      {msg.content}
-                    </p>
+          {/* Chat Stream or Home View */}
+          <div className="flex-1 overflow-y-auto p-4 md:p-6 custom-scrollbar flex flex-col relative">
+            {activeChannelId === 'home' ? (
+              <div className="max-w-4xl mx-auto w-full py-8 animate-in fade-in zoom-in-95 duration-700">
+                <div className="relative h-64 rounded-3xl overflow-hidden mb-12 group">
+                  <img src="https://images.unsplash.com/photo-1605806616949-1e87b487cb2a?q=80&w=1200&auto=format&fit=crop" className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-1000" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#0b0c10] via-[#0b0c10]/40 to-transparent"></div>
+                  <div className="absolute bottom-0 left-0 p-8">
+                    <h1 className="text-4xl md:text-5xl font-serif font-black text-white mb-2 drop-shadow-2xl">A Taverna do Dragão Quebrado</h1>
+                    <p className="text-gray-400 max-w-xl text-lg italic">"Onde as lendas começam e as canecas nunca secam. Prepare seu dado e sua coragem."</p>
                   </div>
-                )}
-                {msg.type === 'speech' && (
-                  <div className="flex gap-3 my-2 group">
-                    <img src={msg.avatar} alt={msg.user} className="w-10 h-10 rounded-full border border-white/10 shrink-0 mt-1" />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-baseline gap-2 mb-1">
-                        <span className="text-sm font-bold text-white">{msg.user}</span>
-                        <span className="text-xs text-gray-500">Hoje às 20:45</span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {channels.map(channel => (
+                    <div 
+                      key={channel.id}
+                      onClick={() => setActiveChannelId(channel.id)}
+                      className="group relative h-48 rounded-2xl overflow-hidden bg-[#12141a] border border-white/5 hover:border-[#d4af37]/50 transition-all duration-500 cursor-pointer shadow-xl"
+                    >
+                      <img src={channel.image} alt={channel.name} className="absolute inset-0 w-full h-full object-cover opacity-30 group-hover:opacity-50 transition-all duration-700 group-hover:scale-110" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-[#0b0c10] via-[#0b0c10]/70 to-transparent"></div>
+                      
+                      <div className="absolute top-4 right-4 bg-black/60 backdrop-blur-md border border-white/10 px-3 py-1 rounded-full text-[10px] font-bold text-white uppercase tracking-widest">
+                        {channel.category}
                       </div>
-                      <div className="bg-[#1e212b]/80 backdrop-blur-sm border border-white/5 rounded-2xl rounded-tl-none px-4 py-2.5 text-gray-300 inline-block shadow-sm">
-                        {msg.content}
+
+                      <div className="absolute bottom-0 left-0 p-6">
+                        <div className="flex items-center gap-2 mb-1">
+                          {channel.type === 'narrative' ? <Hash size={18} className="text-[#d4af37]"/> : <Book size={18} className="text-[#d4af37]"/>}
+                          <h3 className="text-xl font-bold text-white font-serif">{channel.name}</h3>
+                        </div>
+                        <p className="text-xs text-gray-500 line-clamp-2 max-w-[250px]">{channel.description}</p>
+                      </div>
+
+                      <div className="absolute bottom-6 right-6 opacity-0 group-hover:opacity-100 transition-all translate-x-4 group-hover:translate-x-0">
+                        <div className="p-2 bg-[#d4af37] text-[#0b0c10] rounded-lg shadow-lg">
+                          <ArrowRight size={20} />
+                        </div>
                       </div>
                     </div>
-                  </div>
-                )}
-                {msg.type === 'system' && (
-                  <div className="flex justify-center my-4">
-                    <div className="bg-[#d4af37]/10 border border-[#d4af37]/30 rounded-full px-4 py-1.5 flex items-center gap-2 text-sm text-[#d4af37] font-mono shadow-[0_0_10px_rgba(212,175,55,0.1)]">
-                      <Dices size={16} />
-                      {msg.content}
-                    </div>
-                  </div>
-                )}
-              </React.Fragment>
-            ))}
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="mt-auto"></div> {/* Push content to bottom */}
+                {messages.filter(m => !m.channelId || m.channelId === activeChannelId).map(msg => (
+                  <React.Fragment key={msg.id}>
+                    {msg.type === 'narrative' && (
+                      <div className="my-2 group animate-in fade-in slide-in-from-left-2 duration-500 relative">
+                        <div className="flex items-center gap-2 mb-1 opacity-60 group-hover:opacity-100 transition-opacity">
+                          <span className="text-[10px] font-black text-[#d4af37] uppercase tracking-[0.2em] font-serif">{msg.role}</span>
+                          <span className="text-xs font-bold text-white/50">{msg.user}</span>
+                          <button onClick={() => deleteMessage(msg.id)} className="opacity-0 group-hover:opacity-100 p-1 text-red-500/50 hover:text-red-500 transition-all"><PlusCircle size={12} className="rotate-45"/></button>
+                        </div>
+                        <div className="border-l-2 border-[#d4af37] pl-4 py-1 bg-gradient-to-r from-[#d4af37]/5 to-transparent">
+                          <p className="font-serif italic text-lg text-[#e0e0e0] leading-relaxed drop-shadow-sm">
+                            {msg.content}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    {msg.type === 'speech' && (
+                      <div className="flex gap-3 my-2 group animate-in fade-in slide-in-from-bottom-2 duration-500 relative">
+                        <img src={msg.avatar} alt={msg.user} className="w-10 h-10 rounded-full border border-white/10 shrink-0 mt-1" />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-baseline gap-2 mb-1">
+                            <span className="text-sm font-bold text-white">{msg.user}</span>
+                            <span className="text-[9px] font-bold text-gray-500 uppercase tracking-wider bg-white/5 px-1.5 py-0.5 rounded-sm">{msg.role}</span>
+                            <span className="text-xs text-gray-500">Hoje às 20:45</span>
+                            <button onClick={() => deleteMessage(msg.id)} className="opacity-0 group-hover:opacity-100 p-1 text-red-500/50 hover:text-red-500 transition-all"><PlusCircle size={12} className="rotate-45"/></button>
+                          </div>
+                          <div className="bg-[#1e212b]/80 backdrop-blur-sm border border-white/5 rounded-2xl rounded-tl-none px-4 py-2.5 text-gray-300 inline-block shadow-sm">
+                            {msg.content}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    {msg.type === 'system' && (
+                      <div className="flex justify-center my-4 animate-in fade-in zoom-in-95 duration-500">
+                        <div className="bg-[#d4af37]/10 border border-[#d4af37]/30 rounded-full px-4 py-1.5 flex items-center gap-2 text-sm text-[#d4af37] font-mono shadow-[0_0_10px_rgba(212,175,55,0.1)]">
+                          <Dices size={16} />
+                          {msg.content}
+                        </div>
+                      </div>
+                    )}
+                  </React.Fragment>
+                ))}
+                <div ref={messagesEndRef} />
+              </>
+            )}
           </div>
 
-          {/* Floating Input */}
-          <form className="p-4 md:p-6 pt-0 shrink-0" onSubmit={handleSendMessage}>
-            <div className="bg-[#1a1d24]/90 backdrop-blur-xl border border-white/10 rounded-2xl p-2 flex items-center gap-2 shadow-2xl">
-              <button type="button" className="p-2 text-gray-400 hover:text-[#d4af37] hover:bg-[#d4af37]/10 rounded-xl transition-all">
-                <Dices size={22} />
-              </button>
-              <button type="button" className="p-2 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all hidden sm:block">
-                <ImageIcon size={22} />
-              </button>
-              <input 
-                type="text" 
-                value={inputText}
-                onChange={(e) => setInputText(e.target.value)}
-                placeholder="Escreva sua narração..." 
-                className="flex-1 bg-transparent border-none text-white placeholder-gray-500 focus:outline-none px-2 text-[15px]"
-              />
-              <button type="submit" className="p-2.5 bg-[#d4af37] text-[#0b0c10] rounded-xl hover:bg-[#e5c158] hover:shadow-[0_0_15px_rgba(212,175,55,0.4)] transition-all">
-                <Send size={18} className="ml-0.5" />
-              </button>
-            </div>
-          </form>
+          {/* Floating Input - Only if not on home */}
+          {activeChannelId !== 'home' && (
+            <form className="p-4 md:p-6 pt-0 shrink-0" onSubmit={handleSendMessage}>
+              <div className="bg-[#1a1d24]/90 backdrop-blur-xl border border-white/10 rounded-2xl p-2 flex items-center gap-2 shadow-2xl">
+                <button type="button" className="p-2 text-gray-400 hover:text-[#d4af37] hover:bg-[#d4af37]/10 rounded-xl transition-all">
+                  <Dices size={22} />
+                </button>
+                <button type="button" className="p-2 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all hidden sm:block">
+                  <ImageIcon size={22} />
+                </button>
+                <input 
+                  type="text" 
+                  value={inputText}
+                  onChange={(e) => setInputText(e.target.value)}
+                  placeholder={activeChannel.type === 'narrative' ? "Escreva sua narração..." : "Envie uma informação..."} 
+                  className="flex-1 bg-transparent border-none text-white placeholder-gray-500 focus:outline-none px-2 text-[15px]"
+                />
+                <button type="submit" className="p-2.5 bg-[#d4af37] text-[#0b0c10] rounded-xl hover:bg-[#e5c158] hover:shadow-[0_0_15px_rgba(212,175,55,0.4)] transition-all">
+                  <Send size={18} className="ml-0.5" />
+                </button>
+              </div>
+            </form>
+          )}
         </div>
 
         {/* Right Sidebar (NPCs/Members) - Hidden on mobile */}
         <div className="hidden lg:flex w-72 flex-col bg-[#12141a]/80 backdrop-blur-xl border-l border-white/5 z-10">
           <div className="p-4 border-b border-white/5">
-            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-4">Membros — 4</h3>
-            <div className="space-y-3">
-              <div className="flex items-center gap-3">
-                <div className="relative">
-                  <img src="https://picsum.photos/seed/dm/100/100" className="w-8 h-8 rounded-full border border-[#d4af37]" />
-                  <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 rounded-full border-2 border-[#12141a]"></div>
+            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-4">Membros — {members.length}</h3>
+            <div className="space-y-4">
+              {members.map(member => (
+                <div key={member.id} className="group flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="relative">
+                      <img src={member.avatar} className={`w-8 h-8 rounded-full border ${member.role === 'Mestre' ? 'border-[#d4af37]' : 'border-white/10'}`} />
+                      <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 rounded-full border-2 border-[#12141a]"></div>
+                    </div>
+                    <div>
+                      <div className={`text-sm font-bold ${member.role === 'Mestre' ? 'text-[#d4af37]' : 'text-white'}`}>{member.name}</div>
+                      <div className="text-xs text-gray-500">{member.role}</div>
+                    </div>
+                  </div>
+                  {member.role !== 'Mestre' && (
+                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button onClick={() => banUser(member.id)} className="p-1 text-red-500 hover:bg-red-500/10 rounded-md" title="Banir"><PlusCircle size={14} className="rotate-45"/></button>
+                      <button className="p-1 text-[#d4af37] hover:bg-[#d4af37]/10 rounded-md" title="Mudar Cargo"><Crown size={14}/></button>
+                    </div>
+                  )}
                 </div>
-                <div>
-                  <div className="text-sm font-bold text-[#d4af37]">Dungeon Master</div>
-                  <div className="text-xs text-gray-500">Mestre</div>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="relative">
-                  <img src="https://picsum.photos/seed/elara/100/100" className="w-8 h-8 rounded-full border border-white/10" />
-                  <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 rounded-full border-2 border-[#12141a]"></div>
-                </div>
-                <div>
-                  <div className="text-sm font-medium text-white">Elara</div>
-                  <div className="text-xs text-gray-500">Jogadora</div>
-                </div>
-              </div>
+              ))}
             </div>
           </div>
           <div className="p-4 flex-1 overflow-y-auto custom-scrollbar">
@@ -260,6 +406,75 @@ export default function App() {
             </div>
           </div>
         </div>
+
+        {/* GM CREATE CHANNEL MODAL */}
+        {isGMModalOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setIsGMModalOpen(false)}></div>
+            <form onSubmit={handleCreateChannel} className="relative w-full max-w-md bg-[#12141a] border border-[#d4af37]/30 rounded-3xl p-8 shadow-2xl animate-in fade-in zoom-in-95 duration-300">
+              <h2 className="text-2xl font-serif font-bold text-[#d4af37] mb-6 flex items-center gap-3"><PlusCircle /> Novo Canal</h2>
+              
+              <div className="space-y-6">
+                <div className="flex flex-col gap-2">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">Nome do Canal</label>
+                  <input 
+                    autoFocus
+                    required
+                    type="text" 
+                    value={newChannelData.name}
+                    onChange={e => setNewChannelData({...newChannelData, name: e.target.value})}
+                    placeholder="Ex: masmorra-sombria" 
+                    className="bg-transparent border-b border-white/20 pb-2 text-white placeholder-gray-700 focus:outline-none focus:border-[#d4af37] transition-all"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="flex flex-col gap-2">
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">Tipo</label>
+                    <select 
+                      value={newChannelData.type}
+                      onChange={e => setNewChannelData({...newChannelData, type: e.target.value as any})}
+                      className="bg-[#0b0c10] border border-white/10 rounded-lg p-2 text-white focus:outline-none focus:border-[#d4af37]"
+                    >
+                      <option value="narrative">Narrativa</option>
+                      <option value="info">Informação</option>
+                    </select>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">Categoria</label>
+                    <select 
+                      value={newChannelData.category}
+                      onChange={e => setNewChannelData({...newChannelData, category: e.target.value as any})}
+                      className="bg-[#0b0c10] border border-white/10 rounded-lg p-2 text-white focus:outline-none focus:border-[#d4af37]"
+                    >
+                      <option value="NARRATIVA">Narrativa</option>
+                      <option value="INFORMAÇÃO">Informação</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">Permissões de Chat</label>
+                  <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/5">
+                    <input 
+                      type="checkbox" 
+                      checked={newChannelData.anyoneCanTalk} 
+                      onChange={e => setNewChannelData({...newChannelData, anyoneCanTalk: e.target.checked})}
+                      id="perm-talk"
+                      className="w-4 h-4 accent-[#d4af37]"
+                    />
+                    <label htmlFor="perm-talk" className="text-sm text-gray-300 cursor-pointer">Todos podem falar (senão, apenas Admins)</label>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-4 mt-8">
+                <button type="button" onClick={() => setIsGMModalOpen(false)} className="flex-1 py-3 px-4 rounded-xl border border-white/10 text-gray-400 font-bold hover:bg-white/5 transition-all uppercase tracking-widest text-xs">Cancelar</button>
+                <button type="submit" className="flex-1 py-3 px-4 rounded-xl bg-[#d4af37] text-[#0b0c10] font-bold hover:bg-[#e5c158] transition-all uppercase tracking-widest text-xs shadow-lg shadow-[#d4af37]/20">Criar Canal</button>
+              </div>
+            </form>
+          </div>
+        )}
       </div>
     );
   }
