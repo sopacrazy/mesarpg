@@ -44,7 +44,7 @@ const adventures = [
   }
 ];
 
-const roomMessages = [
+const initialRoomMessages = [
   {
     id: 1,
     type: 'narrative',
@@ -84,6 +84,23 @@ const npcs = [
 
 export default function App() {
   const [currentView, setCurrentView] = useState<'dashboard' | 'room'>('dashboard');
+  const [messages, setMessages] = useState(initialRoomMessages);
+  const [inputText, setInputText] = useState('');
+
+  const handleSendMessage = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!inputText.trim()) return;
+
+    const newMessage = {
+      id: messages.length + 1,
+      type: 'narrative' as const, // Toda fala do mestre sai como narrativa (bordão dourado)
+      content: inputText,
+      user: "Dungeon Master"
+    };
+
+    setMessages([...messages, newMessage]);
+    setInputText('');
+  };
 
   if (currentView === 'room') {
     return (
@@ -142,7 +159,7 @@ export default function App() {
           {/* Chat Stream */}
           <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 custom-scrollbar flex flex-col">
             <div className="mt-auto"></div> {/* Push content to bottom */}
-            {roomMessages.map(msg => (
+            {messages.map(msg => (
               <React.Fragment key={msg.id}>
                 {msg.type === 'narrative' && (
                   <div className="border-l-2 border-[#d4af37] pl-4 py-1 my-2 bg-gradient-to-r from-[#d4af37]/5 to-transparent">
@@ -178,24 +195,26 @@ export default function App() {
           </div>
 
           {/* Floating Input */}
-          <div className="p-4 md:p-6 pt-0 shrink-0">
+          <form className="p-4 md:p-6 pt-0 shrink-0" onSubmit={handleSendMessage}>
             <div className="bg-[#1a1d24]/90 backdrop-blur-xl border border-white/10 rounded-2xl p-2 flex items-center gap-2 shadow-2xl">
-              <button className="p-2 text-gray-400 hover:text-[#d4af37] hover:bg-[#d4af37]/10 rounded-xl transition-all">
+              <button type="button" className="p-2 text-gray-400 hover:text-[#d4af37] hover:bg-[#d4af37]/10 rounded-xl transition-all">
                 <Dices size={22} />
               </button>
-              <button className="p-2 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all hidden sm:block">
+              <button type="button" className="p-2 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all hidden sm:block">
                 <ImageIcon size={22} />
               </button>
               <input 
                 type="text" 
-                placeholder="Escreva sua ação..." 
+                value={inputText}
+                onChange={(e) => setInputText(e.target.value)}
+                placeholder="Escreva sua narração..." 
                 className="flex-1 bg-transparent border-none text-white placeholder-gray-500 focus:outline-none px-2 text-[15px]"
               />
-              <button className="p-2.5 bg-[#d4af37] text-[#0b0c10] rounded-xl hover:bg-[#e5c158] hover:shadow-[0_0_15px_rgba(212,175,55,0.4)] transition-all">
+              <button type="submit" className="p-2.5 bg-[#d4af37] text-[#0b0c10] rounded-xl hover:bg-[#e5c158] hover:shadow-[0_0_15px_rgba(212,175,55,0.4)] transition-all">
                 <Send size={18} className="ml-0.5" />
               </button>
             </div>
-          </div>
+          </form>
         </div>
 
         {/* Right Sidebar (NPCs/Members) - Hidden on mobile */}
