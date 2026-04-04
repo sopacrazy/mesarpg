@@ -4,7 +4,8 @@ import 'react-quill-new/dist/quill.snow.css';
 import { 
   Globe, Bell, Compass, Grid, List, Users, Crown, ArrowRight, 
   Sparkles, ChevronDown, Star, Menu, Image as ImageIcon, Send,
-  Home, Search, PlusCircle, User, Hash, Book, Scroll, Dices, MoreVertical
+  Home, Search, PlusCircle, User, Hash, Book, Scroll, Dices, MoreVertical,
+  Mic, Square, Play, Pause, Trash2, Clock
 } from 'lucide-react';
 
 const initialChannels = [
@@ -114,6 +115,12 @@ export default function App() {
   const [isGMModalOpen, setIsGMModalOpen] = useState(false);
   const [isNarrativeModalOpen, setIsNarrativeModalOpen] = useState(false);
   const [narrativeContent, setNarrativeContent] = useState('');
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<BlobPart[]>([]);
+  const timerRef = useRef<any>(null);
+
   const [newChannelData, setNewChannelData] = useState({
     name: '', category: 'NARRATIVA', type: 'narrative', visibility: 'public', anyoneCanTalk: true
   });
@@ -138,7 +145,7 @@ export default function App() {
 
     const newMessage = {
       id: Date.now(),
-      type: 'speech' as any, // Mensagem comum curta
+      type: 'speech' as any,
       content: inputText,
       user: "Dungeon Master",
       role: "Mestre",
@@ -148,6 +155,64 @@ export default function App() {
 
     setMessages([...messages, newMessage]);
     setInputText('');
+  };
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      chunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) chunksRef.current.push(e.data);
+      };
+
+      mediaRecorder.onstop = () => {
+        const audioBlob = new Blob(chunksRef.current, { type: 'audio/webm' });
+        const audioUrl = URL.createObjectURL(audioBlob);
+        sendAudioMessage(audioUrl);
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+      setRecordingTime(0);
+      timerRef.current = setInterval(() => {
+        setRecordingTime(prev => prev + 1);
+      }, 1000);
+    } catch (err) {
+      console.error("Erro ao acessar microfone:", err);
+      alert("Por favor, permita o acesso ao microfone para gravar áudio.");
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      clearInterval(timerRef.current);
+    }
+  };
+
+  const sendAudioMessage = (url: string) => {
+    const newMessage = {
+      id: Date.now(),
+      type: 'audio' as any,
+      audioUrl: url,
+      duration: formatTime(recordingTime),
+      user: "Dungeon Master",
+      role: "Mestre",
+      avatar: "https://picsum.photos/seed/dm/100/100",
+      channelId: activeChannelId
+    };
+    setMessages(prev => [...prev, newMessage]);
+  };
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
   const handleSendNarrative = () => {
@@ -354,6 +419,39 @@ export default function App() {
                         </div>
                       </div>
                     )}
+                    {msg.type === 'audio' && (
+                      <div className="flex gap-3 my-2 group animate-in fade-in slide-in-from-bottom-2 duration-500 relative">
+                        <img src={msg.avatar} alt={msg.user} className="w-10 h-10 rounded-full border border-white/10 shrink-0 mt-1" />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-baseline gap-2 mb-1">
+                            <span className="text-sm font-bold text-white">{msg.user}</span>
+                            <span className="text-[9px] font-bold text-[#d4af37] uppercase tracking-wider bg-[#d4af37]/10 px-1.5 py-0.5 rounded-sm">{msg.role}</span>
+                            <span className="text-xs text-gray-500">Hoje às 21:00</span>
+                            <button onClick={() => deleteMessage(msg.id)} className="opacity-0 group-hover:opacity-100 p-1 text-red-500/50 hover:text-red-500 transition-all"><PlusCircle size={12} className="rotate-45"/></button>
+                          </div>
+                          
+                          <div className="bg-[#1e212b] border border-[#d4af37]/20 rounded-2xl rounded-tl-none px-4 py-3 text-gray-300 inline-flex items-center gap-4 shadow-xl min-w-[240px]">
+                            <button className="w-10 h-10 rounded-full bg-[#d4af37] text-[#0b0c10] flex items-center justify-center hover:bg-[#e5c158] transition-all shadow-lg active:scale-95">
+                              <Play size={20} fill="currentColor"/>
+                            </button>
+                            <div className="flex-1 flex flex-col gap-1.5">
+                              <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden relative">
+                                <div className="absolute inset-0 bg-[#d4af37]/30 w-1/3"></div>
+                              </div>
+                              <div className="flex justify-between items-center text-[10px] font-bold text-gray-500 uppercase tracking-tighter">
+                                <span>Áudio — {msg.duration}</span>
+                                <div className="flex gap-0.5">
+                                  {[...Array(12)].map((_, i) => (
+                                    <div key={i} className="w-0.5 bg-[#d4af37]/40 rounded-full" style={{ height: `${2 + Math.random() * 8}px` }}></div>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                            <audio src={msg.audioUrl} className="hidden" />
+                          </div>
+                        </div>
+                      </div>
+                    )}
                     {msg.type === 'system' && (
                       <div className="flex justify-center my-4 animate-in fade-in zoom-in-95 duration-500">
                         <div className="bg-[#d4af37]/10 border border-[#d4af37]/30 rounded-full px-4 py-1.5 flex items-center gap-2 text-sm text-[#d4af37] font-mono shadow-[0_0_10px_rgba(212,175,55,0.1)]">
@@ -382,7 +480,33 @@ export default function App() {
               </div>
 
               <form className="flex items-center gap-2 w-full" onSubmit={handleSendMessage}>
-                <div className="flex-1 bg-[#1a1d24]/90 backdrop-blur-xl border border-white/10 rounded-2xl p-2 flex items-center gap-2 shadow-2xl">
+                <div className="flex-1 bg-[#1a1d24]/90 backdrop-blur-xl border border-white/10 rounded-2xl p-2 flex items-center gap-2 shadow-2xl relative">
+                  {isRecording ? (
+                    <div className="absolute inset-0 bg-[#12141a] rounded-2xl flex items-center px-4 gap-4 animate-in fade-in duration-300">
+                      <div className="flex items-center gap-2 text-red-500 font-bold uppercase tracking-widest text-xs animate-pulse">
+                        <div className="w-2 h-2 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]"></div>
+                        Gravando...
+                      </div>
+                      <div className="flex-1 text-[#d4af37] font-mono text-center font-bold">
+                        {formatTime(recordingTime)}
+                      </div>
+                      <button 
+                        type="button" 
+                        onClick={() => { setIsRecording(false); clearInterval(timerRef.current); }}
+                        className="p-2 text-gray-500 hover:text-white transition-colors"
+                      >
+                        <Trash2 size={20} />
+                      </button>
+                      <button 
+                        type="button" 
+                        onClick={stopRecording}
+                        className="p-2 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-all shadow-lg active:scale-95"
+                      >
+                        <Square size={20} fill="currentColor" />
+                      </button>
+                    </div>
+                  ) : null}
+
                   <button type="button" className="p-2 text-gray-400 hover:text-[#d4af37] hover:bg-[#d4af37]/10 rounded-xl transition-all">
                     <Dices size={22} />
                   </button>
@@ -396,9 +520,19 @@ export default function App() {
                     placeholder="Fale com os outros..." 
                     className="flex-1 bg-transparent border-none text-white placeholder-gray-600 focus:outline-none px-2 text-[15px]"
                   />
-                  <button type="submit" className="p-2.5 bg-[#d4af37] text-[#0b0c10] rounded-xl hover:bg-[#e5c158] hover:shadow-[0_0_15px_rgba(212,175,55,0.4)] transition-all">
-                    <Send size={18} className="ml-0.5" />
-                  </button>
+                  {!inputText.trim() ? (
+                    <button 
+                      type="button" 
+                      onClick={startRecording}
+                      className="p-2.5 text-[#d4af37] hover:bg-[#d4af37]/10 rounded-xl transition-all active:scale-95"
+                    >
+                      <Mic size={22} />
+                    </button>
+                  ) : (
+                    <button type="submit" className="p-2.5 bg-[#d4af37] text-[#0b0c10] rounded-xl hover:bg-[#e5c158] hover:shadow-[0_0_15px_rgba(212,175,55,0.4)] transition-all">
+                      <Send size={18} className="ml-0.5" />
+                    </button>
+                  )}
                 </div>
               </form>
             </div>
