@@ -325,12 +325,12 @@ export default function App() {
                           <div className="h-[1px] flex-1 bg-gradient-to-l from-transparent to-[#d4af37]/30"></div>
                         </div>
 
-                        <div className="p-8 md:p-12 bg-[#12141a]/60 backdrop-blur-md rounded-3xl border border-[#d4af37]/10 shadow-[0_20px_50px_rgba(0,0,0,0.5)] relative overflow-hidden narrative-post group-hover:border-[#d4af37]/20 transition-all">
+                        <div className="p-8 md:p-12 bg-[#12141a]/60 backdrop-blur-md rounded-[2.5rem] border border-[#d4af37]/10 shadow-[0_20px_50px_rgba(0,0,0,0.5)] relative overflow-hidden narrative-post group-hover:border-[#d4af37]/20 transition-all w-full">
                           {/* Decorative elements */}
                           <div className="absolute top-0 right-0 w-32 h-32 bg-[#d4af37]/5 rounded-full blur-[60px] pointer-events-none"></div>
                           <div className="absolute bottom-0 left-0 w-24 h-24 bg-[#d4af37]/5 rounded-full blur-[50px] pointer-events-none"></div>
                           
-                          <div className="relative z-10 prose prose-invert prose-p:text-gray-100 prose-p:leading-relaxed prose-headings:text-white prose-headings:font-serif prose-strong:text-[#d4af37] prose-img:rounded-2xl prose-blockquote:border-[#d4af37] prose-blockquote:bg-white/5 prose-blockquote:py-1 prose-blockquote:px-6 prose-a:text-[#d4af37] prose-container font-serif text-[1.1rem] text-gray-200">
+                          <div className="relative z-10 prose prose-invert prose-p:text-gray-100 prose-p:leading-relaxed prose-headings:text-white prose-headings:font-serif prose-strong:text-[#d4af37] prose-img:rounded-2xl prose-blockquote:border-[#d4af37] prose-blockquote:bg-white/5 prose-blockquote:py-1 prose-blockquote:px-6 prose-a:text-[#d4af37] prose-container font-serif text-[1.1rem] text-gray-200 w-full">
                              <div 
                               dangerouslySetInnerHTML={{ __html: msg.content }} 
                             />
@@ -348,7 +348,7 @@ export default function App() {
                             <span className="text-xs text-gray-500">Hoje às 20:45</span>
                             <button onClick={() => deleteMessage(msg.id)} className="opacity-0 group-hover:opacity-100 p-1 text-red-500/50 hover:text-red-500 transition-all"><PlusCircle size={12} className="rotate-45"/></button>
                           </div>
-                          <div className="bg-[#1e212b]/80 backdrop-blur-sm border border-white/5 rounded-2xl rounded-tl-none px-4 py-2.5 text-gray-300 inline-block shadow-sm">
+                          <div className="bg-[#1e212b]/80 backdrop-blur-sm border border-white/5 rounded-2xl rounded-tl-none px-4 py-2.5 text-gray-300 inline-block shadow-sm max-w-[85%] md:max-w-[70%] break-words">
                             {msg.content}
                           </div>
                         </div>

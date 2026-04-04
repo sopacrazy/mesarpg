@@ -23,11 +23,23 @@
   }
 }
 
-/* Narrative Styles */
-.prose-container h1 { font-size: 2.25rem; font-weight: 800; margin-bottom: 1rem; color: white !important; }
-.prose-container h2 { font-size: 1.875rem; font-weight: 700; margin-top: 1.5rem; margin-bottom: 0.75rem; color: white !important; }
-.prose-container h3 { font-size: 1.5rem; font-weight: 600; margin-top: 1.25rem; margin-bottom: 0.5rem; color: white !important; }
-.prose-container p { margin-bottom: 1.25rem; line-height: 1.8; color: #e2e8f0; }
+.prose-container {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  max-width: 100%;
+}
+.prose-container p { 
+  margin-bottom: 1.25rem; 
+  line-height: 1.8; 
+  color: #e2e8f0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.prose-container .ql-align-center { text-align: center; }
+.prose-container .ql-align-right { text-align: right; }
+.prose-container .ql-align-justify { text-align: justify; }
+
 .prose-container strong { color: #d4af37 !important; }
 .prose-container blockquote { 
   border-left: 4px solid #d4af37; 
@@ -40,6 +52,8 @@
 .prose-container img { 
   border-radius: 1.5rem; 
   margin: 2rem 0; 
+  max-width: 100%;
+  height: auto;
   box-shadow: 0 10px 40px rgba(0,0,0,0.5);
   border: 1px solid rgba(212, 175, 55, 0.2);
 }
