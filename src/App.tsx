@@ -117,6 +117,7 @@ export default function App() {
   const [narrativeContent, setNarrativeContent] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
+  const [playingMessageId, setPlayingMessageId] = useState<number | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<BlobPart[]>([]);
   const timerRef = useRef<any>(null);
@@ -431,23 +432,47 @@ export default function App() {
                           </div>
                           
                           <div className="bg-[#1e212b] border border-[#d4af37]/20 rounded-2xl rounded-tl-none px-4 py-3 text-gray-300 inline-flex items-center gap-4 shadow-xl min-w-[240px]">
-                            <button className="w-10 h-10 rounded-full bg-[#d4af37] text-[#0b0c10] flex items-center justify-center hover:bg-[#e5c158] transition-all shadow-lg active:scale-95">
-                              <Play size={20} fill="currentColor"/>
+                            <button 
+                              onClick={(e) => {
+                                const audio = e.currentTarget.parentElement?.querySelector('audio');
+                                if (audio) {
+                                  if (playingMessageId === msg.id) {
+                                    audio.pause();
+                                    setPlayingMessageId(null);
+                                  } else {
+                                    // Parar outros áudios se necessário (opcional, aqui paramos o atual)
+                                    document.querySelectorAll('audio').forEach(a => a.pause());
+                                    audio.play();
+                                    setPlayingMessageId(msg.id);
+                                  }
+                                }
+                              }}
+                              className="w-10 h-10 rounded-full bg-[#d4af37] text-[#0b0c10] flex items-center justify-center hover:bg-[#e5c158] transition-all shadow-lg active:scale-95"
+                            >
+                              {playingMessageId === msg.id ? <Pause size={20} fill="currentColor"/> : <Play size={20} fill="currentColor" className="ml-0.5" />}
                             </button>
                             <div className="flex-1 flex flex-col gap-1.5">
                               <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden relative">
-                                <div className="absolute inset-0 bg-[#d4af37]/30 w-1/3"></div>
+                                <div className={`absolute inset-0 bg-[#d4af37]/30 ${playingMessageId === msg.id ? 'animate-pulse' : 'w-1/3'}`}></div>
                               </div>
                               <div className="flex justify-between items-center text-[10px] font-bold text-gray-500 uppercase tracking-tighter">
-                                <span>Áudio — {msg.duration}</span>
+                                <span>{playingMessageId === msg.id ? 'Tocando...' : `Áudio — ${msg.duration}`}</span>
                                 <div className="flex gap-0.5">
                                   {[...Array(12)].map((_, i) => (
-                                    <div key={i} className="w-0.5 bg-[#d4af37]/40 rounded-full" style={{ height: `${2 + Math.random() * 8}px` }}></div>
+                                    <div 
+                                      key={i} 
+                                      className={`w-0.5 rounded-full transition-all duration-300 ${playingMessageId === msg.id ? 'bg-[#d4af37] h-3 animate-bounce' : 'bg-[#d4af37]/40 h-2'}`}
+                                      style={{ transitionDelay: `${i * 50}ms` }}
+                                    ></div>
                                   ))}
                                 </div>
                               </div>
                             </div>
-                            <audio src={msg.audioUrl} className="hidden" />
+                            <audio 
+                              src={msg.audioUrl} 
+                              className="hidden" 
+                              onEnded={() => setPlayingMessageId(null)}
+                            />
                           </div>
                         </div>
                       </div>
